@@ -1,0 +1,37 @@
+# README
+
+Nombre Vulgar: Nombre común de la planta
+Familia: familia taxónomica
+Nombre Científico: Nombre binomial
+Huerta: identificador de la huerta
+Longitud: coordenadas
+Latitud: coordenadas
+Tiempo Huerta (años): número de años de la huerta
+Personas que Cuidan la Huerta: número de personas que cuidan la huera
+Mezcla: 0, no mezclada; 1, mezclada
+Habitat: Cultivada, Silvestre
+Habito: Herbacea, Arbusto, Arbol, Enrredareda, Pasto, Penca, Herbacea rastrera
+H: hoja
+T: tallo
+F: flor
+Fr: fruto
+S: semilla
+R: raíz
+SNC: Symptoms, signs and abnormal clinical and laboratory findings, not elsewhere classified  
+DDS: enfermedades sistema digestivo
+DRS: enfermedades sistema respiratorio
+DGS: enfermedades sistema genital urinario
+DCS: enfermedades sistema circulatorio
+DEA: enfermedades de los ojos y anexos
+DEM: enfermedades de los oidos y mastoides
+DNS: enfermedades sistema nervioso
+IPD: enfermedades infecciosas y parasitarias
+DSS: enfermedades piel y tejidos subcutaneos
+ENM: enfermedades sistema endocrino, nutricionales y metabolicas
+DMC: enfermedades sistema muscular y esqueletico y tejidos de conexion 
+DBB: enfermedades de la sangre y sistema inmunologico
+MBD: desordenes mentales 
+PCP: prenatal, periperio y embarazo
+NEO: neoplasias
+IPO: causas externas
+CUL: culturales

@@ -1,0 +1,132 @@
+---
+title: "Los pingüinos de Palmer"
+author:
+  - name: "Álex Espinosa Correa"
+    affiliation: "Universidad de Antioquia"
+date: "2024-11-02"
+lang: es
+format:
+  html:
+    embed-resources: true
+bibliography: references.bib
+csl: apa.csl
+---
+
+```{r}
+#| label: cargar-paquetes
+#| echo: false
+#| output: false
+#| message: false
+
+if (!require("tidyverse")) install.packages("tidyverse"); library("tidyverse")
+if (!require("ggthemes")) install.packages("ggthemes"); library("ggthemes")
+if (!require("palmerpenguins")) install.packages("palmerpenguins"); library("palmerpenguins")
+if (!require("gt")) install.packages("gt"); library("gt")
+```
+
+## Introducción
+
+Este es un documento de [**Quarto**](http://quarto.org) donde se algunas características de este sistema de publicación técnica y científica. Se incluye un pequeño análisis, donde utilizaremos el conjunto de datos `penguins` del paquete `palmerpenguins`. Así mismo, se utilizan varios paquetes para el manejo y visualización de los datos (@tbl-paquetes).
+
+| Paquete          | Autores         |
+|------------------|-----------------|
+| `gt`             | @gt             |
+| `ggthemes`       | @ggthemes       |
+| `palmerpenguins` | @palmerpenguins |
+| `tidyverse`      | @tidyverse      |
+
+: Listado de paquetes utilizados en este documento. {#tbl-paquetes}
+
+## Los datos
+
+Los datos fueron recogidos entre 2007 y 2009 por la **Dra. Kristen Gorman** dentro de *Palmer Station Long Term Ecological Research Program*[^1], parte del *US Long Term Ecological Research Network*[^2]. Los datos originalmente fueron publicados por @gorman2014, posteriormente @m.horst2022 los publicaron como un paquete de **R** y están disponibles para su uso bajo [licencia CC0](https://creativecommons.org/public-domain/cc0/). El conjunto de datos consta de `{r} nrow(palmerpenguins::penguins)` filas y `{r} ncol(palmerpenguins::penguins)`. La @tbl-pinguinos muestra los diez primeros datos.
+
+[^1]: Programa de Investigación Ecológica a Largo Plazo de la Estación Palmer
+
+[^2]: *Red estadounidense de investigación ecológica a largo plazo*
+
+```{r}
+#| label: tbl-pinguinos
+#| echo: false
+#| tbl-cap: "Los diez primeros datos del conjunto de datos `penguins` del paquete `palmerpenguins`. El nombre de las variables se ha cambiado para facilitar su lectura."
+
+palmerpenguins::penguins |>
+  dplyr::slice_head(n = 10) |>
+  gt::gt() |> 
+  gt::cols_label(
+    species =  "Especies",
+    island = "Isla",
+    bill_length_mm = "Longitud del pico (mm)",
+    bill_depth_mm = "Profundidad del pico (mm)",
+    flipper_length_mm = "Longitud de la aleta (mm)",
+    body_mass_g = "Masa corporal (g)",
+    sex = "Sexo",
+    year = "Año"
+  )
+```
+
+Entre las variables que incluye este conjunto de datos se encuentran la longitud del pico, la profundidad del pico, las cuales se miden como muestra en la @fig-medidas.
+
+![Cómo se mide la longitud del pico y la profundidad del pico. Imagen de \@allison_horst.](images/culmen_depth.png){#fig-medidas}
+
+## Los pingüinos
+
+El conjunto de datos cuenta con tres especies de pingüinos (@fig-especies) que se identifican con su nombre común:
+
+-   Adelie, *Pygoscelis adeliae*
+-   Gentoo, *Pygoscelis papua*
+-   Chinstrap, *Pygoscelis antarctica*
+
+Estas tres especies se distribuyen por tres islas del Archipiélago de Palmer[^3] en el océano Glacial Antártico.
+
+[^3]: También se conoce como Archipiélago Antártitco, Antarktiske Arkipel o Palmer Inseln.
+
+1.  Biscoe
+2.  Dream
+3.  Torgersen
+
+![Los pingüinos del Archipiélago de Palmer. Imagen de \@allison_horst.](images/lter_penguins.png){#fig-especies}
+
+## Longitud de la aleta
+
+La distribución de las medidas de la longitud de la aleta muestra que hay diferencias entre las especies (@fig-bloxplot), siendo Gentoo los pingüinos con una longitud mayor. A continuación, se muestra el código utilizado para generar los gráficos que permiten llegar a esta conclusión.
+
+```{r}
+#| label: fig-bloxplot
+#| fig-cap: "Boxplot y jitter plot de la longitud de la aleta de las tres especies de pingüinos del Archipiélago de Palmer"
+#| warning: false
+
+palmerpenguins::penguins |> 
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = species,
+      y = flipper_length_mm
+    )
+  ) + 
+  ggplot2::geom_boxplot(
+    ggplot2::aes(
+      color = species
+    ),
+    width = 0.3,
+    show.legend = FALSE
+  ) + 
+  ggplot2::geom_jitter(
+    ggplot2::aes(
+      color = species
+    ),
+    alpha = 0.5,
+    show.legend = FALSE,
+    position = ggplot2::position_jitter(width = 0.2, seed = 0)
+  ) +
+  ggplot2::labs(
+    x = "Especies",
+    y = "Longitud de la aleta (mm)"
+  ) + 
+  ggplot2::theme_classic() +
+  ggthemes::scale_color_colorblind()
+```
+
+# Referencias
+
+::: {#refs}
+:::

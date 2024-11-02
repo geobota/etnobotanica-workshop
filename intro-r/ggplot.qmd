@@ -1,0 +1,80 @@
+---
+title: "Actividades de `ggplot2`"
+author: "Álex Espinosa Correa"
+format:
+  html:
+    embed-resources: true
+---
+
+# Congifuración
+
+```{r}
+#| label: setup
+#| output: false
+
+if (!require("tidyverse")) install.packages("tidyverse"); library("tidyverse")
+if (!require("palmerpenguins")) install.packages("palmerpenguins"); library("palmerpenguins")
+if (!require("ggthemes")) install.packages("ggthemes"); library("ggthemes")
+if (!require("sysfonts")) install.packages("sysfonts"); library("sysfonts")
+if (!require("showtext")) install.packages("showtext"); library("showtext")
+
+sysfonts::font_add_google(
+  name = "Atkinson Hyperlegible",
+  family = "atkinson"
+)
+
+showtext::showtext_auto()
+```
+
+# Actividad 1
+
+Este es el gráfico mostrado durante la presentación y el código para generarlo.
+
+```{r}
+#| label: figura-proposito
+#| echo: true
+#| warning: false
+#| fig-alt: |
+#|   Un diagrama de dispersión de la masa corporal frente a la longitud de la aleta de los pingüinos, con una línea de mejor ajuste de la relación entre estas dos variables superpuesta. El gráfico muestra una relación positiva, bastante lineal y relativamente fuerte entre estas dos variables. Las especies (Adelia, Barbijo y Papúa) se representan con diferentes colores y la relación entre la masa corporal y la longitud de la aleta es aproximadamente la misma para estas tres especies, y los pingüinos Papúa son #| más grandes que los pingüinos de las otras dos especies.
+
+palmerpenguins::penguins |> 
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = flipper_length_mm,
+      y = body_mass_g
+    )
+  ) + 
+  ggplot2::geom_point(
+    ggplot2::aes(
+      color = species,
+      shape = species
+    )
+  ) + 
+  ggplot2::geom_smooth(
+    method = "lm"
+  ) + 
+  ggplot2::labs(
+    title = "Masa corporal y longitud de la aleta",
+    subtitle = "Dimensiones para los Pingüinos Adelie (Adelia), Chinstrap (Barbijo) y Gentoo (Papúa)",
+    x = "Longitud de la aleta (mm)",
+    y = "Masa corporal (g)",
+    color = "Especie",
+    shape = "Especie"
+  ) + 
+  ggplot2::theme_classic(
+    base_family = "atkinson"
+  ) + 
+  ggthemes::scale_color_colorblind()
+```
+
+Utilizando `ggplot2` intente replicar el siguiente gráfico:
+
+![](images/ggplot_actividad_1.png)
+
+# Actividad 2
+
+Utilizando `ggplot2` intente replicar el siguiente gráfico:
+
+![](images/ggplot_actividad_2.png)
+
+Se recomienda revisar la ayuda de `ggplot2::geom_bar()` y `position_dodge()`.

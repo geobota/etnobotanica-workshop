@@ -1,0 +1,55 @@
+---
+title: "Actividades de `dplyr`"
+author: "Álex Espinosa Correa"
+format:
+  html:
+    embed-resources: true
+---
+
+# Congifuración
+
+```{r}
+#| label: setup
+#| output: false
+
+if (!require("tidyverse")) install.packages("tidyverse"); library("tidyverse")
+if (!require("palmerpenguins")) install.packages("palmerpenguins"); library("palmerpenguins")
+if (!require("janitor")) install.packages("janitor"); library("janitor")
+```
+
+# Actividad
+
+El conjunto de datos `palmerpenguins::penguins_raw` contiene los datos en bruto que contiene `palmerpenguins::penguins`. Utilizando `dplyr` intente manejar y organizar los datos de `palmerpenguins::penguins_raw` para llegar a una presentación similar a `palmerpenguins::penguins`. Puede observar cómo están ambos conjuntos de datos usando `utils::str()`, `dplyr::glimpse()`. 
+
+Se proporcionan tres códigos que serán de utilidad. 
+
+```{r}
+#| eval: false
+
+dplyr::mutate(
+  nombre_variable = dplyr::case_match(
+    nombre_variable,
+    "Nombre viejo" ~ "Nombre nuevo",
+    .default = nombre_variable
+  )
+)
+```
+
+```{r}
+#| eval: false
+
+dplyr::mutate(
+  nombre_variable = stringr::str_to_lower(nombre_variable)
+)
+```
+
+```{r}
+#| eval: false
+
+dplyr::mutate(
+  nombre_variable = lubridate::year(nombre_variable)
+)
+```
+
+
+Puede consultar la ayuda de `dplyr::case_match()`, `stringr::str_to_lower()`, `lubridate::year()` para saber que hacen estas funciones. Se recomienda revisar la ayuda de `janitor::clean_names()`.
