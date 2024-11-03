@@ -1,0 +1,389 @@
+---
+title: "Unidad II - Normalidad, Varianza, Chi, T-student y ANOVA simple"
+author: 
+- name: "Bladimir Vera"
+- name: "Álex Espinosa Correa"
+format: html
+editor: visual
+lang: es
+csl: ../apa.csl
+bibliography: references.bib
+---
+
+## Configuración
+
+Estos son los paquetes de R que utilizaremos en esta sesión.
+
+```{r}
+#| label: configuracion
+#| outpout: false
+#| message: false
+#| warning: false
+
+if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("tidymodels")) install.packages("tidymodels")
+if (!require("here")) install.packages("here")
+if (!require("rstatix")) install.packages("rstatix")
+if (!require("infer")) install.packages("infer")
+if (!require("lattice")) install.packages("lattice")
+if (!require("plyr")) install.packages("plyr")
+if (!require("Rmisc")) install.packages("Rmisc")
+if (!require("carData")) install.packages("carData")
+
+```
+
+```{r}
+#| label: alfa
+#| echo: false
+#| outpout: false
+
+valor_alfa <- 0.05
+```
+
+## Prueba de normalidad
+
+En muchas pruebas estadísticas, uno de los supuestos más comunes es que los datos deben estar distribuidos normalmente antes de realizar una prueba *t* de Student o una ANOVA.
+
+Si los datos no siguen una distribución normal, no se pueden realizar los análisis mencionados y es necesario recurrir a pruebas no paramétricas, que no requieren que los datos estén distribuidos normalmente.
+
+Pero, ¿cómo comprobar que los datos tienen una distribución normal? Para ello, se pueden realizar las siguientes pruebas:
+
+-   Prueba de Kolmogórov-Smirnov
+
+-   Prueba de Shapiro-Wilk
+
+-   Prueba de Anderson-Darling
+
+### Prueba de Shapiro-Wilk
+
+::: callout-note
+La prueba de Shapiro-Wilk se utiliza cuando el tamaño de la muestra es menor de 50. Como alternativa, cuando los valores son mayores a 50, se usa la prueba de Kolmogorov-Smirnov-Lilliefors.
+:::
+
+Se quiere evaluar la normalidad de una base de datos que examina la relación entre dos tipos de enfermedades, el peso de la prepración de plantas utilizadas (mezcladas o no) y el peso de la posología.
+
+```{r}
+#| label: datos-prueba-normalidad
+#| output: false
+
+datos_prueba_normalidad <-
+  readr::read_delim(
+    here::here(
+      "analisis-2",
+      "datos",
+      "datos_prueba-normalidad-varianza.csv"
+    ),
+    delim = ";",
+    col_names = TRUE
+  )
+```
+
+```{r}
+#| label: glimpse-datos-prueba-normalidad
+
+datos_prueba_normalidad |>
+  dplyr::glimpse()
+```
+
+```{r}
+#| label: prueba-normalidad-shapiro
+
+prueba_normalidad_shapiro <- 
+  datos_prueba_normalidad |>
+  rstatix::shapiro_test(
+    Preparacion,
+    Posologia
+  )
+
+prueba_normalidad_shapiro
+```
+
+::: {.callout-important title="Criterio de decisión"}
+Si *p* \< `r valor_alfa` no hay normalidad.
+
+Si *p* \> `r valor_alfa` hay normalidad.
+:::
+
+Dado que el *p*-valor = `r prueba_normalidad_shapiro |> dplyr::filter(variable == "Posologia") |> dplyr::pull(p) |> base::formatC()` para `Posología` y *p*-valor = `r prueba_normalidad_shapiro |> dplyr::filter(variable == "Preparacion") |> dplyr::pull(p) |> base::formatC()` para `Preparación` son menores a α = `r valor_alfa`, para un nivel de significancia de `r valor_alfa`, hay suficiente evidencia estadística en los datos para rechazar la hipótesis de que la variable de interés tenga una distribución normal con media y desviación típica iguales a las de la variable de interés. Por ende, **no hay normalidad**.
+
+## Prueba homogeneidad de varianza
+
+El supuesto de homogeneidad de varianzas, también conocido como supuesto de homocedasticidad, considera que la varianza es constante (no varía) en los diferentes niveles de un factor, es decir, entre diferentes grupos.
+
+A la hora de realizar contrastes de hipótesis o intervalos de confianza, cuando los tamaños de cada grupo son muy distintos ocurre que:
+
+-   Si los grupos con tamaños muestrales pequeños son los que tienen mayor varianza, la probabilidad real de cometer un error de tipo I en los contrastes de hipótesis será menor de lo que se obtiene al hacer la prueba. En los intervalos, los límites superior e inferior reales son menores que los que se obtienen. La inferencia será por lo general más conservadora.
+
+-   Si por el contrario, son los grupos con tamaños muestrales grandes los que tienen mayor varianza, entonces se tendrá el efecto contrario y las pruebas serán más liberales. Es decir, la probabilidad real de cometer un error de tipo I es mayor que la devuelta por la prueba y los intervalos de confianza verdaderos serán más amplios que los calculados.
+
+Existen diferentes pruebas que permiten evaluar la distribución de la varianza (prueba de Bartlett, prueba *F* de Fisher, prueba de Levene, entre otras). Todos ellos consideran como hipótesis nula que la varianza es igual entre los grupos y como hipótesis alternativa que no lo es. La diferencia entre ellos es el estadístico de centralidad que utilizan:
+
+-   Las pruebas que trabajan con la media de la varianza son los más potentes cuando las poblaciones que se comparan se distribuyen de forma normal.
+
+-   Utilizar la media truncada mejora la prueba cuando los datos siguen una distribución de Cauchy (colas grandes).
+
+-   La mediana consigue mejorarlo cuando los datos siguen una distribución asimétrica.
+
+Por lo general, si no se puede alcanzar cierta seguridad de que las poblaciones que se comparan son de tipo normal, es recomendable recurrir a pruebas que comparen la mediana de la varianza.
+
+### Prueba de Levene
+
+La prueba de Levene se puede aplicar con la función `levene_test` del paquete `rstatix`. Se caracteriza, además de poder comparar 2 o más poblaciones, por permitir elegir entre diferentes estadísticos de centralidad: mediana (por defecto), media, y media truncada. Esto es importante a la hora de contrastar la homocedasticidad, dependiendo de si los grupos se distribuyen de forma normal o no.
+
+```{r}
+#| label: prueba-homogeneidad-levene
+
+prueba_homogeneidad_levene <- 
+  datos_prueba_normalidad |>
+  dplyr::mutate(
+    Preparacion = forcats::as_factor(Preparacion)
+  ) |>
+  rstatix::levene_test(
+    Posologia ~ Preparacion,
+    center = median
+  )
+
+prueba_homogeneidad_levene
+```
+
+::: {.callout-important title="Criterio de decisión"}
+Si *p* \< `r valor_alfa` no hay homogeneidad de varianzas.
+
+Si *p* \> `r valor_alfa` hay homogeneidad de varianzas
+:::
+
+En el caso del ejercicio, \*\*hay homogeneidad de \*varianza\*\*, ya que *p*-valor = `r prueba_homogeneidad_levene |> dplyr::pull(p)` es mayor que `r valor_alfa`. Por ende, se considera que la varianza es constante (no varía) en los diferentes niveles de un factor, es decir, entre los dos grupos evaluados (Preparación y Posología).
+
+### Prueba de Bartlett
+
+Permite contrastar la igualdad de varianza en 2 o más poblaciones sin necesidad de que el tamaño de los grupos sea el mismo. Es más sensible que la prueba de *Levene* a la falta de normalidad, pero si se está seguro de que los datos provienen de una distribución normal, es la mejor opción.
+
+```{r}
+#| label: prueba-barlett-preparacion
+
+prueba_barlett_preparacion <-
+  stats::bartlett.test(
+    Preparacion ~ Enfermedad,
+    data = datos_prueba_normalidad
+  ) |> 
+  broom::tidy()
+
+prueba_barlett_preparacion
+```
+
+```{r}
+#| label: prueba-barlett-posologia
+
+prueba_barlett_posologia <- 
+  stats::bartlett.test(
+    Posologia ~ Enfermedad,
+    data = datos_prueba_normalidad
+  ) |>
+  broom::tidy()
+
+prueba_barlett_posologia
+```
+
+::: {.callout-important title="Criterio de decisión"}
+Si *p* \< `r valor_alfa` no hay homogeneidad de varianzas.
+
+Si *p* \> `r valor_alfa` hay homogeneidad de varianzas
+:::
+
+Para el caso de la relación Preparación/Enfermedad, el *p*-valor (`r prueba_barlett_preparacion |> dplyr::pull(p.value)`) es mayor que `r valor_alfa`, por ende, no se rechaza la hipótesis nula (H~o~) y **la varianza es homogénea**. Mientras que para el caso de la relación Posología/Enfermedad, el *p*-valor (`r prueba_barlett_posologia |> dplyr::pull(p.value)`) es menor que `r valor_alfa`, por ende, se rechaza la hipótesis nula (H~o~) y **la varianza no es homogénea**.
+
+## Prueba de Chi-cuadrado
+
+La prueba de Chi-cuadrado es un procedimiento estadístico utilizado para determinar si existe una diferencia significativa entre los resultados esperados y los observados en una o más categorías.
+
+Se trata de una prueba no paramétrica que es utilizada por los investigadores para **examinar las diferencias entre variables categóricas en la misma población**. También puede utilizarse para validar o proporcionar un contexto adicional para las frecuencias observadas.
+
+La idea básica de la prueba es que se comparan los valores de los datos reales con lo que se esperaría si la hipótesis nula (H~o~) fuera cierta.
+
+De esta forma, se busca determinar si una diferencia entre los datos observados y los esperados se debe al azar, o si se debe a una relación entre las variables que se están estudiando.
+
+```{r}
+#| label: datos-prueba-chi-cuadrado
+#| output: false
+
+datos_prueba_chi_cuadrado <-
+  readr::read_delim(
+    here::here(
+      "analisis-2",
+      "datos",
+      "datos_chi-cuadrado.csv"
+    ),
+    delim = ";",
+    col_names = TRUE
+  )
+```
+
+```{r}
+#| label: glimpse-datos-prueba-chi_cuadrado
+
+datos_prueba_chi_cuadrado |>
+  dplyr::glimpse()
+```
+
+```{r}
+#| label: prueba-chi-cuadrado
+
+prueba_chi_cuadrado <-
+  datos_prueba_chi_cuadrado |>
+  infer::chisq_test(
+    Enfermedad ~ Preparacion
+  )
+
+prueba_chi_cuadrado
+```
+
+::: {.callout-tip title="Hipótesis"}
+H~o~: No hay relación entre la enfermedad y la preparación .
+
+H~1~: Existe una relación entre la enfermedad y la preparación.
+:::
+
+::: {.callout-important title="Criterio de decisión"}
+Si *p* \< `r valor_alfa` se rechaza H~0~.
+
+Si *p* \> `r valor_alfa` No se rechaza H~0~.
+:::
+
+Como el valor fue *p*-valor (`r prueba_chi_cuadrado |> dplyr::pull(p_value)`) es menor a `r valor_alfa`, esto quiere decir que existen una relación entre la enfermedad y la preparación de las plantas en la población estudio.
+
+## Prueba *t* de Student
+
+La prueba *t* de Student es una herramienta estadística utilizada para determinar si hay una diferencia significativa entre las medias de dos grupos de datos y si son significativamente diferentes entre sí. Fue desarrollada por el estadístico británico William Sealy Gosset en 1908, quien trabajaba en la cervecería Guinness y necesitaba una forma de analizar los datos de producción de cerveza en pequeñas muestras.
+
+La prueba se utiliza en muchos campos, como la investigación médica, la psicología, la economía y la educación. Entre los principales usos de la prueba *t* se encuentran:
+
+-   **Comparar dos grupos:** La prueba se utiliza para comparar dos grupos de datos, por ejemplo, para comparar la media de los resultados de una prueba entre dos grupos poblacionales.
+
+-   **Evaluación de la eficacia de un tratamiento:** La prueba *t* se puede utilizar para evaluar si un tratamiento o intervención tiene un efecto significativo en una variable de interés en comparación con un grupo de control que no recibió el tratamiento.
+
+-   **Análisis de experimentos**: La prueba se usa a menudo en experimentos científicos para comparar los resultados de un grupo de tratamiento con un grupo de control.
+
+-   **Estudio de diferencias de género**: La prueba *t* también se utiliza a menudo en estudios de género para comparar las diferencias en las medias entre hombres y mujeres en una variable de interés en un grupo poblacional.
+
+-   **Análisis de datos de encuestas**: Se puede usar para el análisis de datos de encuestas y comparar las medias de dos grupos de datos, por ejemplo, para comparar la media de usos de plantas entre hombres y mujeres.
+
+```{r}
+#| label: datos-prueba-t-student
+#| output: false
+
+datos_prueba_t_student <-
+  readr::read_delim(
+    here::here(
+      "analisis-2",
+      "datos",
+      "datos_t-test.csv"
+    ),
+    delim = ";",
+    col_names = TRUE
+  )
+```
+
+```{r}
+#| label: glimpse-datos-prueba-t-student
+
+datos_prueba_t_student |>
+  dplyr::glimpse()
+```
+
+```{r}
+#| label: prueba-t-student
+
+prueba_t_student <- 
+  datos_prueba_t_student |>
+  infer::t_test(
+    formula = Preparacion ~ Enfermedad,
+    order = c("DDS", "SNC"),
+    alternative = "two-sided",
+    conf_level = 0.95
+  )
+
+prueba_t_student
+```
+
+::: {.callout-important title="Criterio de decisión"}
+Si *p* \< `r valor_alfa` se rechaza H~0~.
+
+Si *p* \> `r valor_alfa` No se rechaza H~0~.
+:::
+
+Como *p*-valor (`r prueba_t_student |> dplyr::pull(p_value)`) es mayor a `r valor_alfa` no se rechaza H~0~.
+
+## ANOVA Simple
+
+El Análisis de la Varianza (ANOVA) es una técnica estadística que se utiliza para comparar la media de tres o más grupos y determinar si existen diferencias significativas entre ellas. En otras palabras, ANOVA te ayuda a saber si hay una diferencia significativa en la media entre los grupos que estás comparando o si cualquier diferencia que hayas observado se debe simplemente al azar.
+
+El ANOVA compara la varianza entre los grupos con la varianza dentro de los grupos. Si la varianza entre los grupos es mayor que la varianza dentro de los grupos, entonces es probable que exista una diferencia significativa en las medias. Si la varianza dentro de los grupos es mayor que la varianza entre los grupos, entonces cualquier diferencia observada en las medias podría ser simplemente aleatoria.
+
+El ANOVA simple trata de analizar si dos variables Y (continua, llamada variable respuesta) y F (categórica, llamada factor), son independientes o no (es decir, si hay relación entre ellas, si hay diferencias significativas en el valor de la primera según el valor que tome la segunda, si el factor influye en la variable respuesta, etc.).
+
+```{r}
+
+#| label: datos-anova
+
+anova_corr <-
+  readr::read_delim(
+    here::here(
+      "analisis-2",
+      "datos",
+      "datos_anova.csv"
+    ),
+    delim = ";",
+    col_names = TRUE
+  )
+    
+anova_corr |>
+  dplyr::glimpse()
+anova_corr
+```
+
+::: {.callout-note appearance="simple"}
+**Contexto**
+
+Mediante entrevistas se determino el NÚMERO de plantas medicinales en los diferentes corregimientos.
+
+Se quiere saber si hay diferencias entre los diferentes corregimientos
+
+H0: Altavista=Palmitas=San Antonio = Santa Elena= San Cristóbal P\>0.05
+
+Ha: al menos una media es diferente de las demas P\<0.05
+:::
+
+```{r}
+
+with(anova_corr,tapply(Plan_med,Corre, shapiro.test))
+
+
+```
+
+::: {.callout-note appearance="simple"}
+Los datos (cumplen con supuesto de normalidad) son normales por que el valor p\>0.05 para los diferentes corregimientos de la ciudad
+:::
+
+```{r}
+ac <- anova_corr
+anova.corregimientos<-ac %>% anova_test(Plan_med ~ Corre)
+view(anova.corregimientos)
+```
+
+::: callout-note
+Se observa el valor p adj, si p\<0.05 hay diferencia entre medias, por ende no hay diferencia significativa en los diferentes corregimientos
+
+Por ende, el numero de plantas medicinales es significativamente igual en los diferentes huertos de las zonas rurales de la ciudad. Se acepta la H0
+:::
+
+## Bibliografía
+
+<https://www.cienciadedatos.net/documentos/9_homogeneidad_de_varianza_homocedasticidad.html>
+
+<https://www.statology.org/bartletts-test-in-r/>
+
+<https://www.questionpro.com/blog/es/prueba-de-chi-cuadrado-de-pearson/>
+
+<https://www.questionpro.com/blog/es/prueba-t-de-student/>
+
+<https://juange-alcazar.web.uah.es/Estadistica%20Alcala/ANOVA%20simple.pdf>

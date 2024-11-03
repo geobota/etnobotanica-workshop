@@ -1,0 +1,91 @@
+---
+title: "Etnobotánica Cuantitativa en Normalidad"
+subtitle: "XII Congreso Colombiano de Botánica"
+author:
+  - name: "Bladimir Vera Marín"
+    affiliation: "Universidad de Antioquia"
+  - name: "Álex Espinosa Correa"
+    affiliation: "Universidad de Antioquia"
+# date: 2024-11-03
+format: revealjs
+---
+
+## Introducción
+
+ANOVA te ayuda a saber si hay una diferencia significativa en la media entre los grupos que estás comparando o si cualquier diferencia que hayas observado se debe simplemente al azar.
+
+El ANOVA compara la varianza entre los grupos con la varianza dentro de los grupos. Si la varianza entre los grupos es mayor que la varianza dentro de los grupos, entonces es probable que exista una diferencia significativa en las medias. Si la varianza dentro de los grupos es mayor que la varianza entre los grupos, entonces cualquier diferencia observada en las medias podría ser simplemente aleatoria.
+
+## 
+
+El ANOVA simple trata de analizar si dos variables Y (continua, llamada variable respuesta) y F (categórica, llamada factor), son independientes o no (es decir, si hay relación entre ellas, si hay diferencias significativas en el valor de la primera según el valor que tome la segunda, si el factor influye en la variable respuesta, etc.).
+
+### Vamos a R
+
+Se tienen algunos datos **(no publicados)** de los corregimientos de Medellín y el uso de algunas plantas medicinales
+
+**Contexto**
+
+Mediante entrevistas se determino el NÚMERO de plantas medicinales en los diferentes corregimientos.
+
+Se quiere saber si hay diferencias entre los diferentes corregimientos
+
+H0: Altavista=Palmitas=San Antonio = Santa Elena= San Cristóbal P\>0.05
+
+Ha: al menos una media es diferente de las demás P\<0.05
+
+### "llamamos" los datos
+
+```{r}
+#| label: datos-anova
+
+anova_corr <-
+  readr::read_delim(
+    here::here(
+      "analisis-2",
+      "datos",
+      "datos_anova.csv"
+    ),
+    delim = ";",
+    col_names = TRUE
+  )
+    
+anova_corr |>
+  dplyr::glimpse()
+anova_corr
+```
+
+### Se analiza normalidad de los datos
+
+```{r}
+with(anova_corr,tapply(Plan_med,Corre, shapiro.test))
+
+```
+
+Los datos (cumplen con supuesto de normalidad) son normales por que el valor p\>0.05 para los diferentes corregimientos de la ciudad
+
+### Se realiza el ANOVA
+
+```{r}
+ac <- anova_corr
+anova.corregimientos<-ac %>% anova_test(Plan_med ~ Corre)
+view(anova.corregimientos)
+```
+
+## Para concluir
+
+Se observa el valor p adj, si p\<0.05 hay diferencia entre medias, por ende no hay diferencia significativa en los diferentes corregimientos
+
+Por ende, el numero de plantas medicinales es significativamente igul en los diferentes huertos en los diferentes corregimientos. Se acepta la H0
+
+## Referencias de la Unidad 3 
+
+<https://www.cienciadedatos.net/documentos/9_homogeneidad_de_varianza_homocedasticidad.html>
+
+<https://www.statology.org/bartletts-test-in-r/>
+
+<https://www.questionpro.com/blog/es/prueba-de-chi-cuadrado-de-pearson/>
+
+<https://www.questionpro.com/blog/es/prueba-t-de-student/>
+
+<https://juange-alcazar.web.uah.es/Estadistica%20Alcala/ANOVA%20simple.pdf>

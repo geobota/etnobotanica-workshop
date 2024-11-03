@@ -1,0 +1,89 @@
+---
+title: "Etnobotánica Cuantitativa en R - Pruebas no paramétricas -"
+subtitle: "XII Congreso Colombiano de Botánica"
+author:
+  - name: "Bladimir Vera Marín"
+    affiliation: "Universidad de Antioquia"
+  - name: "Álex Espinosa Correa"
+    affiliation: "Universidad de Antioquia"
+# date: 2024-11-03
+format: revealjs
+---
+
+## Configuración 
+
+```{r}
+#| label: configuracion
+#| outpout: false
+#| message: false
+#| warning: false
+
+if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("tidymodels")) install.packages("tidymodels")
+if (!require("here")) install.packages("here")
+if (!require("rstatix")) install.packages("rstatix")
+if (!require("infer")) install.packages("infer")
+if(!require("MVN")) install.packages("MVN")
+if(!require("psych")) install.packages("psych")
+if(!require("permute")) install.packages("permute")
+if(!require("lattice")) install.packages("lattice")
+if(!require("vegan")) install.packages("vegan")
+if(!require("sp")) install.packages("sp")
+if(!require("maps")) install.packages("maps")
+if(!require("shapefiles")) install.packages("shapefiles")
+if(!require("foreign")) install.packages("foreign")
+if(!require("fossil")) install.packages("fossil")
+```
+
+## Introducción. 
+
+Las pruebas no paramétricas (conocidas como pruebas de distribución libre), son aquellas que se basan en determinadas hipótesis y no en suposiciones estrictas sobre la distribución de los datos, esto hace que sean útiles cuando los datos no siguen una distribución normal o cuando las condiciones para las pruebas parámetricas no se cumplen (como varianzas homgéneas o datos medidos en escalas de intervalo o razón).
+
+## Algunas pruebas 
+
+-   **Prueba de Mann-Whitney U**: Se utiliza para comparar dos grupos independientes, similar a la prueba t de Student pero para datos no normales.
+
+-   **Prueba de Wilcoxon**: Se usa para comparar dos muestras relacionadas o pareadas.
+
+-   **Prueba de Kruskal-Wallis**: Es el equivalente no paramétrico del ANOVA, utilizado para comparar más de dos grupos independientes.
+
+-   **Prueba de chi-cuadrado**: Se emplea para probar la asociación entre dos variables categóricas.
+
+-   **Coeficiente de correlación de Spearman**: Mide la relación entre dos variables ordinales o no normalmente distribuidas.
+
+::: {.callout-note appearance="simple"}
+Estas pruebas son útiles en casos donde los datos presentan sesgos o cuando se trabaja con tamaños de muestra pequeños.
+:::
+
+## Naturaleza de los datos. 
+
+Se tienen datos de tres tipos de suelo (TRAT) con las medidas de humedad relativa para cada uno de estos.
+
+### Vamos a R...
+
+```{r}
+#| label: datos-noparametricos
+
+no_parametricos <-
+  readr::read_delim(
+    here::here(
+      "analisis-3",
+      "datos",
+      "datos_noparametricos.csv"
+    ),
+    delim = ",",
+    col_names = TRUE
+  )
+
+ no_parametricos |>
+  dplyr::glimpse()
+ 
+
+#PROBAR NORMALIDAD Y HOMOGENEIDAD DE VARIANZAS
+
+with(no_parametricos,tapply(HSUELO, TRAT,shapiro.test))
+```
+
+::: {.callout-note appearance="simple"}
+No hay normalidad en los datos, porque p\<0.05
+:::

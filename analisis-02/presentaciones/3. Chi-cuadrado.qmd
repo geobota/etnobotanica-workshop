@@ -1,0 +1,80 @@
+---
+title: "Chi - Cuadrado"
+author: "Bladimir Vera Marín"
+format: revealjs
+editor: visual
+---
+
+## Introducción
+
+La prueba de Chi-cuadrado es un procedimiento estadístico utilizado para determinar si existe una diferencia significativa entre los resultados esperados y los observados en una o más categorías.
+
+Se trata de una prueba no paramétrica que es utilizada por los investigadores para **examinar las diferencias entre variables categóricas en la misma población**. También puede utilizarse para validar o proporcionar un contexto adicional para las frecuencias observadas.
+
+### Por ende...
+
+La idea básica de la prueba es que se comparan los valores de los datos reales con lo que se esperaría si la hipótesis nula (H~o~) fuera cierta.
+
+De esta forma, se busca determinar si una diferencia entre los datos observados y los esperados se debe al azar, o si se debe a una relación entre las variables que se están estudiando.
+
+## Que se tiene...
+
+Los datos presentados son categóricos y muestran si algunas enfermedades utilizan una o varias plantas (mezcladas) para tratar la enferemedad.
+
+## Ahora en R
+
+"Llamamos" el archivo
+
+```{r}
+#| label: datos-prueba-chi-cuadrado
+#| output: false
+
+datos_prueba_chi_cuadrado <-
+  readr::read_delim(
+    here::here(
+      "analisis-2",
+      "datos",
+      "datos_chi-cuadrado.csv"
+    ),
+    delim = ";",
+    col_names = TRUE
+  )
+```
+
+## Ahora...
+
+```{r}
+#| label: glimpse-datos-prueba-chi_cuadrado
+
+datos_prueba_chi_cuadrado |>
+  dplyr::glimpse()
+```
+
+Tener presente las siguientes hipótesis:
+
+::: {.callout-note title="Hipótesis" appearance="simple"}
+H~o~: No hay relación entre la enfermedad y la preparación .
+
+H~1~: Existe una relación entre la enfermedad y la preparación.
+:::
+
+## Se hace la prueba
+
+```{r}
+prueba_chi_cuadrado <-
+  datos_prueba_chi_cuadrado |>
+  infer::chisq_test(
+    Enfermedad ~ Preparacion
+  )
+
+prueba_chi_cuadrado
+
+```
+
+-   Si *p* \< r se rechaza H~0~.
+
+-   Si *p* \> r No se rechaza H~0~.
+
+## Conclusión
+
+Como el valor fue *p*-valor \< r, esto quiere decir **que existen una relación entre la enfermedad y la preparación de las plantas** en la población estudio.

@@ -1,0 +1,143 @@
+---
+title: "Etnobotánica Cuantitativa en R Varianza"
+subtitle: "XII Congreso Colombiano de Botánica"
+author:
+  - name: "Bladimir Vera Marín"
+    affiliation: "Universidad de Antioquia"
+  - name: "Álex Espinosa Correa"
+    affiliation: "Universidad de Antioquia"
+# date: 2024-11-03
+format: revealjs
+---
+
+# Configuración
+
+```{r}
+#| label: configuracion
+#| outpout: false
+#| message: false
+#| warning: false
+
+if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("tidymodels")) install.packages("tidymodels")
+if (!require("here")) install.packages("here")
+if (!require("rstatix")) install.packages("rstatix")
+if (!require("infer")) install.packages("infer")
+if (!require("lattice")) install.packages("lattice")
+if (!require("plyr")) install.packages("plyr")
+if (!require("Rmisc")) install.packages("Rmisc")
+if (!require("carData")) install.packages("carData")
+
+```
+
+## Prueba homogeneidad de varianza
+
+El supuesto de homogeneidad de varianzas, también conocido como supuesto de homocedasticidad, considera que la varianza es constante (no varía) en los diferentes niveles de un factor, es decir, entre diferentes grupos.
+
+## Cuidado con los tamaños de las muestras
+
+-   Si los grupos con tamaños muestrales pequeños son los que tienen mayor varianza, la probabilidad real de cometer un error de tipo I en los contrastes de hipótesis será menor de lo que se obtiene al hacer la prueba. En los intervalos, los límites superior e inferior reales son menores que los que se obtienen. La inferencia será por lo general más conservadora.
+
+## Por otra parte
+
+-   Si por el contrario, son los grupos con tamaños muestrales grandes los que tienen mayor varianza, entonces se tendrá el efecto contrario y las pruebas serán más liberales. Es decir, la probabilidad real de cometer un error de tipo I es mayor que la devuelta por la prueba y los intervalos de confianza verdaderos serán más amplios que los calculados.
+
+## Algunas Pruebas
+
+Existen diferentes pruebas que permiten evaluar la distribución de la varianza:
+
+-Prueba de Bartlett
+
+-Prueba *F* de Fisher
+
+-Prueba de Levene
+
+**Nota:** Todos ellos consideran como hipótesis nula que la varianza es igual entre los grupos y como hipótesis alternativa que no lo es.
+
+## Diferencias
+
+-   Las pruebas que trabajan con la media de la varianza son los más potentes cuando las poblaciones que se comparan se distribuyen de forma normal.
+
+-   Utilizar la media truncada mejora la prueba cuando los datos siguen una distribución de Cauchy (colas grandes).
+
+-   La mediana consigue mejorarlo cuando los datos siguen una distribución asimétrica.
+
+**INSERTAR IMAGEN COMO EJEMPLOS**
+
+### Prueba de Levene
+
+La prueba de Levene se puede aplicar con la función `levene_test` del paquete `rstatix`. Se caracteriza, además de poder comparar 2 o más poblaciones, por permitir elegir entre diferentes estadísticos de centralidad: mediana (por defecto), media, y media truncada. Esto es importante a la hora de contrastar la homocedasticidad, dependiendo de si los grupos se distribuyen de forma normal o no.
+
+#### Ahora, manos a la obra...
+
+Se continuan trabajando con los datos de Posología y cantidad de preparacion para diferentes tratamientos de enfermedades.
+
+Tener en cuenta que..
+
+Si *p* \< *r* no hay homogeneidad de varianzas.
+
+Si *p* \> *r* hay homogeneidad de varianzas
+
+#### Ahora en R.
+
+```{r}
+#| label: prueba-homogeneidad-levene
+
+prueba_homogeneidad_levene <- 
+  datos_prueba_normalidad |>
+  dplyr::mutate(
+    Preparacion = forcats::as_factor(Preparacion)
+  ) |>
+  rstatix::levene_test(
+    Posologia ~ Preparacion,
+    center = median
+  )
+
+prueba_homogeneidad_levene
+```
+
+#### Conclusión
+
+En el caso del ejercicio, \*\*hay homogeneidad de \*varianza\*\*, ya que p-valor es mayor que r valor_alfa (0.05). Por ende, se considera que la varianza es constante (no varía) en los diferentes niveles de un factor, es decir, entre los dos grupos evaluados (Preparación y Posología).
+
+### Prueba de Bartlett
+
+Permite contrastar la igualdad de varianza en 2 o más poblaciones sin necesidad de que el tamaño de los grupos sea el mismo. Es más sensible que la prueba de *Levene* a la falta de normalidad, pero si se está seguro de que los datos provienen de una distribución normal, es la mejor opción.
+
+**Tener presente que:**
+
+Si p \< *r* no hay homogeneidad de varianza
+
+Si p \> *r* hay homogenidad de varianza
+
+#### Vamos a R..
+
+```{r}
+#| label: prueba-barlett-preparacion
+
+prueba_barlett_preparacion <-
+  stats::bartlett.test(
+    Preparacion ~ Enfermedad,
+    data = datos_prueba_normalidad
+  ) |> 
+  broom::tidy()
+
+prueba_barlett_preparacion
+```
+
+```{r}
+#| label: prueba-barlett-posologia
+
+prueba_barlett_posologia <- 
+  stats::bartlett.test(
+    Posologia ~ Enfermedad,
+    data = datos_prueba_normalidad
+  ) |>
+  broom::tidy()
+
+prueba_barlett_posologia
+```
+
+#### Conclusión
+
+Para el caso de la relación Preparación/Enfermedad, el *p*-valor de preparación es mayor que *r* (0.05), por ende, no se rechaza la hipótesis nula (H~o~) y **la varianza es homogénea**. Mientras que para el caso de la relación Posología/Enfermedad, el *p*-valor de posología es menor que el valor *r*, por ende, se rechaza la hipótesis nula (H~o~) y **la varianza no es homogénea**.

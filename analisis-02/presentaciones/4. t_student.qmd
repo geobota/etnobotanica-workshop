@@ -1,0 +1,85 @@
+---
+title: "Prueba t de Student"
+author: "Bladimir Vera Marín"
+format:
+  html:
+    embed-resources: true
+---
+
+## Introducción.
+
+La prueba *t* de Student es una herramienta estadística utilizada para determinar si hay una diferencia significativa entre las medias de dos grupos de datos y si son significativamente diferentes entre sí.
+
+La prueba se utiliza en muchos campos, como la investigación médica, la psicología, la economía y la educación.
+
+### Algunos usos.
+
+-   **Comparar dos grupos:** La prueba se utiliza para comparar dos grupos de datos, por ejemplo, para comparar la media de los resultados de una prueba entre dos grupos poblacionales.
+
+-   **Evaluación de la eficacia de un tratamiento:** La prueba *t* se puede utilizar para evaluar si un tratamiento o intervención tiene un efecto significativo en una variable de interés en comparación con un grupo de control que no recibió el tratamiento.
+
+## 
+
+-   **Análisis de experimentos**: La prueba se usa a menudo en experimentos científicos para comparar los resultados de un grupo de tratamiento con un grupo de control.
+
+-   **Estudio de diferencias de género**: La prueba *t* también se utiliza a menudo en estudios de género para comparar las diferencias en las medias entre hombres y mujeres en una variable de interés en un grupo poblacional.
+
+-   **Análisis de datos de encuestas**: Se puede usar para el análisis de datos de encuestas y comparar las medias de dos grupos de datos, por ejemplo, para comparar la media de usos de plantas entre hombres y mujeres.
+
+## Ahora, vamos a prácticar
+
+Tenemos datos sobre el peso de plantas en la preparación de remedios y la cantidad de medicamento (posología) que se debe de suministrar para el tratamiento de alguna enfermedad relacionada con alguno de los sistemas.
+
+"Llamamos" los datos...
+
+```{r}
+#| label: datos-prueba-t-student
+#| output: false
+
+datos_prueba_t_student <-
+  readr::read_delim(
+    here::here(
+      "analisis-2",
+      "datos",
+      "datos_t-test.csv"
+    ),
+    delim = ";",
+    col_names = TRUE
+  )
+
+#| label: glimpse-datos-prueba-t-student
+
+datos_prueba_t_student |>
+  dplyr::glimpse()
+```
+
+### Tener en cuenta...
+
+::: {.callout-note title="Criterio de decisión" appearance="simple"}
+Si *p* \< *r* se rechaza H~0~.
+
+Si *p* \> *r* No se rechaza H~0~.
+
+Hay relación entre el peso de plantas en la preparación de remedios y la enfermedad que se quiere tratar
+:::
+
+### Realizamos la prueba
+
+```{r}
+#| label: prueba-t-student
+
+prueba_t_student <- 
+  datos_prueba_t_student |>
+  infer::t_test(
+    formula = Preparacion ~ Enfermedad,
+    order = c("DDS", "SNC"),
+    alternative = "two-sided",
+    conf_level = 0.95
+  )
+
+prueba_t_student
+```
+
+## Conclusión 
+
+Como *p*-valor \> r, no se rechaza H~0~.

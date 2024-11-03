@@ -1,0 +1,311 @@
+---
+title: "Unidad III - Pruebas no paramétricas, Pruebas de correlación, Regresión lineal, Clúster, Análisis de Componentes principales (PCA)"
+author: 
+- name: "Bladimir Vera"
+- name: "Álex Espinosa Correa"
+format: html
+editor: visual
+lang: es
+csl: ../apa.csl
+# bibliography: references.bib
+---
+
+## Configuración
+
+Estos son los paquetes de R que utilizaremos en esta sesión.
+
+```{r}
+#| label: configuracion
+#| outpout: false
+#| message: false
+#| warning: false
+
+if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("tidymodels")) install.packages("tidymodels")
+if (!require("here")) install.packages("here")
+if (!require("rstatix")) install.packages("rstatix")
+if (!require("infer")) install.packages("infer")
+if(!require("MVN")) install.packages("MVN")
+if(!require("psych")) install.packages("psych")
+if(!require("permute")) install.packages("permute")
+if(!require("lattice")) install.packages("lattice")
+if(!require("vegan")) install.packages("vegan")
+if(!require("sp")) install.packages("sp")
+if(!require("maps")) install.packages("maps")
+if(!require("shapefiles")) install.packages("shapefiles")
+if(!require("foreign")) install.packages("foreign")
+if(!require("fossil")) install.packages("fossil")
+```
+
+## Pruebas no paramétricas
+
+Las pruebas no paramétricas (conocidas como pruebas de distribución libre), son aquellas que se basan en determinadas hipótesis y no en suposiciones estrictas sobre la distribución de los datos, esto hace que sean útiles cuando los datos no siguen una distribución normal o cuando las condiciones para las pruebas parámetricas no se cumplen (como varianzas homgéneas o datos medidos en escalas de intervalo o razón). Estas pruebas son más flexibles y se aplican a datos de cualquier tipo, como aquellos en escalas ordinales o nominales.
+
+Algunas pruebas no paramétricas comunes incluyen:
+
+-   **Prueba de Mann-Whitney U**: Se utiliza para comparar dos grupos independientes, similar a la prueba t de Student pero para datos no normales.
+
+-   **Prueba de Wilcoxon**: Se usa para comparar dos muestras relacionadas o pareadas.
+
+-   **Prueba de Kruskal-Wallis**: Es el equivalente no paramétrico del ANOVA, utilizado para comparar más de dos grupos independientes.
+
+-   **Prueba de chi-cuadrado**: Se emplea para probar la asociación entre dos variables categóricas.
+
+-   **Coeficiente de correlación de Spearman**: Mide la relación entre dos variables ordinales o no normalmente distribuidas.
+
+Estas pruebas son útiles en casos donde los datos presentan sesgos, tienen outliers o cuando se trabaja con tamaños de muestra pequeños.
+
+```{r}
+#| label: datos-noparametricos
+
+no_parametricos <-
+  readr::read_delim(
+    here::here(
+      "analisis-3",
+      "datos",
+      "datos_noparametricos.csv"
+    ),
+    delim = ",",
+    col_names = TRUE
+  )
+
+ no_parametricos |>
+  dplyr::glimpse()
+ 
+
+#PROBAR NORMALIDAD Y HOMOGENEIDAD DE VARIANZAS
+
+with(no_parametricos,tapply(HSUELO, TRAT,shapiro.test))
+
+```
+
+::: {.callout-note appearance="simple"}
+No hay normalidad en los datos, porque p\<0.05
+:::
+
+```{r}
+no_parametricos
+testle <- no_parametricos
+testle <- 
+  testle |> 
+  dplyr::mutate(
+    TRAT = forcats::as_factor(TRAT)
+  )
+
+testle |> 
+  rstatix::levene_test(
+    HSUELO ~ TRAT
+  )
+```
+
+::: callout-note
+Como p\<0.05, no cumple con el supuesto de hpomogeneidad de varianza, por esto no se puede realizar estadística paramétrica; así se considera trabajar más buen un modelo no paramétrico.
+
+Dado que no hay normalidad ni homogeneidad de varianza, no se puede realiar un ANOVA, por lo que se realiza su equivalente no parametrico.
+:::
+
+```{r}
+kruskal.test(HSUELO~TRAT, data=no_parametricos)
+```
+
+::: callout-note
+Si p\<0.05 hay diferencia significativa (se reporta como KW=193.94; P\<0.05)
+
+Dado que hay diferencias significativas, se requiere saber quien difiere de quien, por lo que se realiza una prueba post hoc
+:::
+
+```{r}
+
+pairwise.wilcox.test(no_parametricos$HSUELO,no_parametricos$TRAT,
+                     p.adjust.method = "bonferroni",
+                     paired = FALSE)
+```
+
+::: callout-note
+Se encuentra que la humedad en el suelo es significativamente diferente entre tipos de manejo tradicional en el cultivo de maiz (KW= 193.94; P\<0.05); el manejo MFC tiene mayor humedad y el monocultivo (M) tiene la menor humedad donde la humedad del suelo, fue hasta un 40% mayor en la combinacion MFC, respeto al M (0.33+-0.007 y 0.19 +-0.0013 respectivamente)
+:::
+
+## Pruebas de correlación.
+
+Las pruebas de correlación, existen tanto versiones paramétricas como no paramétricas, dependiendo de los supuestos que se cumplen en los datos.
+
+### Pruebas paramétricas de correlación
+
+**Coeficiente de correlación de Pearson**: Se utiliza para medir la **relación lineal** entre dos variables continuas.
+
+Supuestos:
+
+-   Las dos variables deben de seguir una distribución normal
+
+-   La relación deben de ser lineales
+
+-   Las variables deben medirse en escalas de intervalo o razón.
+
+**Tener en cuenta que:** Los valores de correlación: van de 1 a -1, donde 1 es una relación de correlación perfecta, y -1 es una correlación negativa perfecta y, 0 indica que no hay una relación lineal.
+
+::: callout-note
+**¿Qué se observará en estos datos?**
+
+-   Se quiere conocer si las personas que hablan maya en mayor proporcion
+
+-   Si conversan la tradicion de techar sus casas con la palma de huano, y si esto a su vez se relaciona con la cantidad de plantas que tienen en sus huertos familiares.
+
+-   Se quiere saber como se correlacionan estas variables
+:::
+
+```{r}
+#| label: datos-correlacion1
+
+correlacion <-
+  readr::read_delim(
+    here::here(
+      "analisis-3",
+      "datos",
+      "datos_correlacion1.csv"
+    ),
+    delim = ";",
+    col_names = TRUE
+  )
+
+ correlacion |>
+  dplyr::glimpse()
+
+###Probar la normalidad de los datos 
+
+Normalidad_palmas<-mvn(data=correlacion,
+    univariateTest = "SW", desc=TRUE)
+Normalidad_palmas
+str(correlacion)
+###Se hace la correlación
+
+Cor_Palmas<-psych::corr.test(correlacion,method = "pearson")
+Cor_Palmas
+
+cor.test(correlacion$Demanda,correlacion$Habla)
+
+##exportar tabla de correlacionn
+
+Tabla<-cor(correlacion,method = "pearson")
+write.csv(Tabla,file="Correlacion pearson.csv")
+
+```
+
+::: callout-note
+**¿Qué se puede concluir con los resultados?**
+
+-   A traves del analisis de correlacion se encontro que la conservacion de la lengua maya (mayor % hablado) tiene una alta correlacion
+
+-   Tanto con el porcentaje de la vivienda techada con la palma (r=0.91; P=0.05) como el numero de palmas que el entrevistado posee en su huerto familiar r=0.97; p\<0.05) por tanto, se puede inferir que la conservacion en la traduccion de techar viviendas con palma de huano. Lo anterior implica mantener un suministro de la palma, por lo que las personas las estableen en sus huertos famiiar.
+
+-   Esto último puede contribuir a la conservacion sustentable de las especies
+:::
+
+### Pruebas no paramétricas de correlación
+
+1.  **Coeficiente de correlación de Spearman:** Se utiliza cuando los datos no cumplen con supuestos de normalidad o cuando la relación entre las variables puede no ser líneal, pero las variables aumentan o disminuyen juntas.
+
+Este coeficiente también se puede aplicar cuando los datos no asumen una distribución específica, a la vez se basa en rangos de datos (no en sus valores originales).
+
+**Tener en cuenta que:** Al igual que Pearson, va de -1 a 1, donde los extremos indican correlaciones perfectas y 0 indica ausencia de correlación.
+
+2.  **Coeficiente de correlación de Kendall (Tau de Kendall):** Esta prueba mide la relación entre dos variables ordinales o continuas. Normalmente utiliza el concepto de **pares cocordantes o discordantes** para calcular la correlación, en lugar de depender de los rangos como en Spearman.
+
+**Tener en cuenta que:** Va de -1 a 1, con los mismos significados que en Spearman.
+
+### Diferencias clave entre Pearson y Spearman/Kendall
+
+-   **Pearson** se utiliza cuando las variables son continuas y normalmente distribuidas, y la relación entre ellas es lineal.
+
+-   **Spearman y Kendall** se aplican cuando los datos no son normales, hay relaciones no lineales (pero monótonas), o se trabaja con variables ordinales o con datos que contienen empates.
+
+::: callout-note
+Ejemplo de leña, como se correlaciona la edad de 21 mujeres de Kenya con la cantidad de leña de colectan y el número de especies que conocen para este uso
+:::
+
+```{r}
+#| label: datos-correlacion2
+
+correlacion2 <-
+  readr::read_delim(
+    here::here(
+      "analisis-3",
+      "datos",
+      "datos_correlacion2.csv"
+    ),
+    delim = ";",
+    col_names = TRUE
+  )
+str(correlacion2)
+ correlacion2 |>
+  dplyr::glimpse()
+
+
+### probar la normalidad 
+
+Normalidad_lena<-mvn(data = correlacion2, univariateTest = 
+                       "SW", desc =F)
+
+
+Normalidad_lena
+###como los datos no son normales, lo mas recomendable es hacer una prueba no parametrica
+
+cor_lena<-psych::corr.test(correlacion2,method="spearman")
+cor_lena
+
+##exportar tabla
+Tabla2<-cor(correlacion2,method = "spearman")
+write.csv(Tabla2,file = "correlacion2 spearman.csv")
+```
+
+::: callout-note
+Se evidencia una correlación entre la edad y el numero de especies, pero no lo hay entre la edad y la leña
+
+Entre el valor de la correlación sea más cercano a 1 , hay mayor correlacion (valores cercanos a 0, no hay correlación)
+
+Los datos que evidencian un valor de p\<0.05 representan una correlación significativa (en la segunda tabla)
+:::
+
+## Regresión lineal
+
+La regresión lineal es una técnica de análisis de datos que predice el valor de datos desconocidos mediante el uso de otro valor de datos relacionado y conocido. Modela matemáticamente la variable desconocida o dependiente y la variable conocida o independiente como una ecuación lineal. Los científicos de muchos campos, incluidas la biología y las ciencias del comportamiento, ambientales y sociales, utilizan la regresión lineal para realizar análisis de datos preliminares y predecir tendencias futuras
+
+*Por ejemplo:*
+
+Para el caso que se va a evaluar, se tienen dos columnas, una de la distancia de la planta a la casa del informante y la otra la edad del informante. Se quiere conocer si existe una posible relación entre las variables, donde el informante de acuerdo a su edad, tiene las plantas más cerca a su hogar.
+
+```{r}
+#| label: datos-regresion
+
+regre <-
+  readr::read_delim(
+    here::here(
+      "analisis-3",
+      "datos",
+      "datos_regresion.csv"
+    ),
+    delim = ";",
+    col_names = T
+  )
+  regre|>
+  dplyr::glimpse()
+regre
+```
+
+```{r}
+###Probar la normalidad
+
+Normalidad_regre<-mvn(data=regre,univariateTest = "SW",
+                       des= F)
+Normalidad_regre
+###Corremos la regresion
+Reg_Edad<-lm(Edad~Distancia,data=regre)
+Reg_Edad
+summary(Reg_Edad)
+
+```
+
+::: callout-note
+Aunque el valor *p \<* 0.05; el valor Rsquared solo representa el 0.24 (24%) (no hay regresión lineal, sino una tendencia), por ende es bajo y no explica como la distancia puede tener una incidencia en el número de plantas. La idea es que r-squared sea cercano al valor 1 y en terminos de % mayor a 50%.
+:::
+
+## 

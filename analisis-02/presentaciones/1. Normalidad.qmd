@@ -1,0 +1,111 @@
+---
+title: "Etnobotánica Cuantitativa en Normalidad"
+subtitle: "XII Congreso Colombiano de Botánica"
+author:
+  - name: "Bladimir Vera Marín"
+    affiliation: "Universidad de Antioquia"
+  - name: "Álex Espinosa Correa"
+    affiliation: "Universidad de Antioquia"
+# date: 2024-11-03
+format: revealjs
+---
+
+# Configuración
+
+```{r}
+#| label: configuracion
+#| outpout: false
+#| message: false
+#| warning: false
+
+if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("tidymodels")) install.packages("tidymodels")
+if (!require("here")) install.packages("here")
+if (!require("rstatix")) install.packages("rstatix")
+if (!require("infer")) install.packages("infer")
+if (!require("lattice")) install.packages("lattice")
+if (!require("plyr")) install.packages("plyr")
+if (!require("Rmisc")) install.packages("Rmisc")
+if (!require("carData")) install.packages("carData")
+```
+
+```{r}
+#| label: alfa
+#| echo: false
+#| outpout: false
+
+valor_alfa <- 0.05
+```
+
+## Introducción
+
+En muchas pruebas estadísticas, uno de los supuestos más comunes es que los datos deben estar distribuidos normalmente antes de realizar una prueba *t* de Student o una ANOVA.
+
+Si los datos no siguen una distribución normal, no se pueden realizar los análisis mencionados y es necesario recurrir a pruebas no paramétricas, que no requieren que los datos estén distribuidos normalmente.
+
+## Algunas pruebas
+
+Pero, ¿cómo comprobar que los datos tienen una distribución normal? Para ello, se pueden realizar las siguientes pruebas:
+
+-   Prueba de Kolmogórov-Smirnov
+
+-   Prueba de Shapiro-Wilk
+
+-   Prueba de Anderson-Darling
+
+### Prueba de Shapiro-Wilk
+
+La prueba de Shapiro-Wilk se utiliza cuando el tamaño de la muestra es menor de 50. Como alternativa, cuando los valores son mayores a 50, se usa la prueba de Kolmogorov-Smirnov-Lilliefors.
+
+## A prácticar
+
+Se quiere evaluar la normalidad de una base de datos que examina la relación entre dos tipos de enfermedades, el peso de la prepración de plantas utilizadas (mezcladas o no) y el peso de la posología.
+
+## Trabajar en R
+
+```{r}
+##Se llaman los datos
+#| label: datos-prueba-normalidad
+#| output: false
+
+datos_prueba_normalidad <-
+  readr::read_delim(
+    here::here(
+      "analisis-2",
+      "datos",
+      "datos_prueba-normalidad-varianza.csv"
+    ),
+    delim = ";",
+    col_names = TRUE
+  )
+```
+
+```{r}
+#| label: glimpse-datos-prueba-normalidad
+
+datos_prueba_normalidad |>
+  dplyr::glimpse()
+```
+
+```{r}
+#| label: prueba-normalidad-shapiro
+
+prueba_normalidad_shapiro <- 
+  datos_prueba_normalidad |>
+  rstatix::shapiro_test(
+    Preparacion,
+    Posologia
+  )
+
+prueba_normalidad_shapiro
+```
+
+## Nota
+
+Si p \< r valor_alfa no hay normalidad.
+
+Si p \> r valor_alfa hay normalidad.
+
+## Conclusión
+
+Dado que el p-valor para posología y preparación son menores a valor_alfa \<- 0.05, para un nivel de significancia de r, hay suficiente evidencia estadística en los datos para rechazar la hipótesis de que la variable de interés tenga una distribución normal con media y desviación típica iguales a las de la variable de interés. Por ende, no hay normalidad.
